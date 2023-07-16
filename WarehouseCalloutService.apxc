@@ -1,0 +1,47 @@
+public with sharing class WarehouseCalloutService implements Queueable {
+    
+    private static final String WAREHOUSE_URL = 'https://th-superbadge-apex.herokuapp.com/equipment';
+    
+    @future(callout=true)
+    public static void makewarehousecallout(){
+        
+        Http http = new Http();
+        HttpRequest req = new HttpRequest();
+        req.setMethod('GET');
+        req.setEndpoint(WAREHOUSE_URL);
+        HttpResponse res = http.send(req);
+        
+        //Deserialize response in to List<Object> and create Product2 objects and upsert
+
+        // Deserialization to List<Object>
+        List<Object> jsonlist = (List<Object>)JSON.deserializeUntyped(res.getBody()); 
+        
+        List<Product2> Prod_WH_details = new List<Product2>();
+        
+        for(Object eo:jsonlist){
+		 // Convert to Map<String,Object>
+            Map<String,object> mapobj = (Map<String,object>) eo;
+
+		 // Creating a new Product                    
+            Product2 nprod = new Product2();                                         
+            nprod.Name = (String)mapobj.get('name');
+            nprod.Replacement_Part__c = (Boolean)mapobj.get('replacement');
+            nprod.Lifespan_Months__c = (Integer)mapobj.get('lifespan');
+            nprod.Maintenance_Cycle__c = (Integer)mapobj.get('maintenanceperiod');
+            nprod.Warehouse_SKU__c = (String)mapobj.get('sku');
+            nprod.Cost__c = (Integer)mapobj.get('cost');
+            nprod.Current_Inventory__c = (Integer)mapobj.get('quantity');
+            nprod.ProductCode = (String)mapobj.get('_id');
+            Prod_WH_details.add(nprod);
+        }  
+        if(Prod_WH_details.size()>0){
+            upsert Prod_WH_details;
+            System.debug('WareHouse Details are updated in Salesforce');
+        }   
+    }
+    
+    public static void execute(QueueableContext qc){
+        makewarehousecallout();
+    }        
+        
+}

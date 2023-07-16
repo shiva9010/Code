@@ -1,0 +1,61 @@
+public with sharing class MaintenanceRequestHelper {
+    public static void updateWorkOrders(List<Case> updCases, Map<Id,Case> nonUpdCases) {
+        // TODO: Complete the method to update workorders
+        Set<Id> validCaseIds= new Set<Id>();
+        // TODO: Complete the method to update workorders
+        for(Case upc: updCases){
+            if(nonUpdCases.get(upc.Id).Status!='Closed' && upc.Status=='Closed'){
+                if(upc.Type=='Repair'||upc.Type=='Routine Maintenance'){
+                    validCaseIds.add(upc.Id);                    
+                }
+            }
+        }
+        
+        if(!validCaseIds.isEmpty()){
+            List<Case> newListCases = new List<Case>();
+Map<Id,Case> closedCasesMap = new Map<Id,Case>([Select Id,Vehicle__c, Equipment__c,
+                Equipment__r.Maintenance_Cycle__c,(Select Id,Equipment__c,Quantity__c From Equipment_Maintenance_Items__r)
+                FROM Case Where Id IN :validCaseIds]);
+            
+            Map<Id,Decimal> CaseMaintenance = new Map<Id,Decimal>();
+            AggregateResult[] results = [Select Maintenance_Request__c,
+            MIN(Equipment__r.Maintenance_Cycle__c)cycle from Equipment_Maintenance_Item__c Where
+            Maintenance_Request__c IN :validCaseIds Group by Maintenance_Request__c];
+            
+            for(AggregateResult ar:results){
+               CaseMaintenance.put((Id)ar.get('Maintenance_Request__c'),(Decimal)ar.get('cycle'));
+            }
+            
+            for(Case cc:closedCasesMap.values()){
+                Case newCase = new Case(
+                    ParentId = cc.Id,
+                    Status = 'New',
+                    Subject = 'Routine Maintenance',
+                    Type ='Routine Maintenance',
+                    Vehicle__c=cc.Vehicle__c,
+                    Equipment__c = cc.Equipment__c,
+                    Origin ='Web',
+                    Date_Reported__c = Date.today()
+                );
+                
+                if(caseMaintenance.containsKey(cc.Id)){
+                    newCase.Date_Due__c = Date.today().addDays((Integer) caseMaintenance.get(cc.Id));
+                }
+                newListCases.add(newCase);
+            }
+            insert newListCases;
+            
+            List<Equipment_Maintenance_Item__c> clonedEMIs = new List<Equipment_Maintenance_Item__c>();
+            for(Case nc:newListCases){
+                for(Equipment_Maintenance_Item__c emi : closedCasesMap.get(nc.ParentId).Equipment_Maintenance_Items__r){
+                    Equipment_Maintenance_Item__c emiclone = emi.clone();
+                    emiclone.Maintenance_Request__c = nc.Id;
+                    clonedEMIs.add(emiclone);
+                }
+                
+            }
+            insert clonedEMIs;
+        }
+        
+    } 
+}

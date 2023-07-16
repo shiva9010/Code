@@ -1,0 +1,16 @@
+@isTest
+public with sharing class WarehouseSyncScheduleTest {
+    // implement scheduled code here
+    @isTest
+    public static void testScheduleclass(){
+        
+        String Schedule ='00 00 01 * * ?';
+        Test.startTest();
+        Test.setMock(HttpCalloutMock.class, new WarehouseCalloutServiceMock());
+        ID jobId = System.schedule('Warehouse Schedule Job',Schedule, new WarehouseSyncSchedule());
+        Test.stopTest();
+        CronTrigger a = [Select Id from CronTrigger Where Id=:jobId];
+        System.assertEquals(jobId,a.Id,'Scheduled');
+        
+    }
+}
