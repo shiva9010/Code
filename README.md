@@ -1,6 +1,6 @@
 # Code
 
-This Project Contains Code for Apex Specialist Super Badge Challenges Solution
+This Project Contains Code for Apex Specialist Super Badge Challenges
 
 # Topics
 *Triggers*
